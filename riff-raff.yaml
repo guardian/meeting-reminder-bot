@@ -1,0 +1,25 @@
+stacks:
+  - playground
+regions:
+  - eu-west-1
+allowedStages:
+  - CODE
+  - PROD
+deployments:
+  cloudformation:
+    type: cloud-formation
+    app: meeting-reminder-bot
+    parameters:
+      templateStagePaths:
+        CODE: meeting-reminder-bot-CODE.template.json
+        PROD: meeting-reminder-bot-PROD.template.json
+
+  lambda:
+    type: aws-lambda
+    parameters:
+      fileName: meeting-reminder-bot.jar
+      bucketSsmLookup: true
+      prefixStack: false
+      functionNames:
+        - meeting-reminder-bot-
+    dependencies: [cloudformation]

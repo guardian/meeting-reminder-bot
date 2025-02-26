@@ -1,0 +1,48 @@
+name: CI-Scala
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  gu-cdk-build:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.GU_RIFF_RAFF_ROLE_ARN }}
+          aws-region: eu-west-1
+
+      - name: Setup Java, Scala and SBT
+        uses: guardian/setup-scala@v1
+
+      - name: Run tests and build JAR
+        run: sbt test assembly
+
+      - name: Create CFN from CDK (TODO CDK tests)
+        run: cdk synth --app "sbt 'runMain com.gu.meeting.main'"
+
+      - name: Upload to Riff-Raff
+        uses: guardian/actions-riff-raff@v4
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          roleArn: ${{ secrets.GU_RIFF_RAFF_ROLE_ARN }}
+          projectName: playground::meeting-reminder-bot
+          configPath: ./riff-raff.yaml
+          commentingEnabled: 'false'
+          contentDirectories: |
+            cloudformation:
+              - ./cdk.out/meeting-reminder-bot-CODE.template.json
+              - ./cdk.out/meeting-reminder-bot-PROD.template.json
+            lambda:
+              - ./target/scala-3.6.3/meeting-reminder-bot.jar
