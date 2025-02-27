@@ -30,7 +30,7 @@ jobs:
         run: sbt test assembly
 
       - name: Create CFN from CDK (TODO CDK tests)
-        run: cdk synth --app "sbt 'runMain com.gu.meeting.main'"
+        run: cdk synth --app "sbt 'cdk/runMain com.gu.meeting.main'"
 
       - name: Upload to Riff-Raff
         uses: guardian/actions-riff-raff@v4

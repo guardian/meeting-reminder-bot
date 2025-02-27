@@ -4,11 +4,10 @@ import software.amazon.awscdk.services.events.targets.LambdaFunction
 import software.amazon.awscdk.services.events.{Rule, Schedule}
 import software.amazon.awscdk.services.iam.{Policy, PolicyStatement}
 import software.amazon.awscdk.services.lambda.*
-import software.constructs.Construct
-import software.amazon.awscdk.{App, Duration, Environment, Stack, StackProps}
-import software.amazon.awscdk.services.kms.Key
 import software.amazon.awscdk.services.logs.{LogGroup, RetentionDays}
 import software.amazon.awscdk.services.s3.Bucket
+import software.amazon.awscdk.{App, Duration, Stack, StackProps}
+import software.constructs.Construct
 
 import java.lang.reflect.Method
 import scala.jdk.CollectionConverters.*
@@ -19,7 +18,7 @@ class InfraStack(scope: Construct, id: String, stage: String, props: StackProps)
   val app = "meeting-reminder-bot"
   val stack = "playground"
 
-  val bucket = new Bucket(this, bucketName)
+  val bucket = Bucket.fromBucketName(this, app + "-bucket", bucketName)
   val options: BucketOptions = BucketOptions.builder().build()
 
   val myLogGroup = LogGroup.Builder.create(this, "MyLogGroupWithLogGroupName")
@@ -35,7 +34,7 @@ class InfraStack(scope: Construct, id: String, stage: String, props: StackProps)
   }
   val fn = Function.Builder.create(this, app)
     .runtime(Runtime.JAVA_21)
-    .handler(lambdaClass.getName + "." + method)
+    .handler(lambdaClass.getName + "::" + method)
     .code(Code.fromBucketV2(bucket, List(stage, app, app + ".jar").mkString("/"), options))
     .timeout(Duration.minutes(5))
     .architecture(Architecture.ARM_64)
@@ -47,6 +46,8 @@ class InfraStack(scope: Construct, id: String, stage: String, props: StackProps)
       ).asJava)
     .build()
 
+  fn.getNode.addDependency(myLogGroup)
+
   val rule = Rule.Builder.create(this, "Schedule Rule").schedule(Schedule.rate(Duration.minutes(1))).build
   rule.addTarget(new LambdaFunction(fn))
 
@@ -56,10 +57,10 @@ class InfraStack(scope: Construct, id: String, stage: String, props: StackProps)
     .statements(List(
       PolicyStatement.Builder.create()
         .actions(List(
-"ssm:GetParametersByPath"
+          "ssm:GetParametersByPath"
         ).asJava)
         .resources(List(
-          "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:" + s"$stage/$stack/$app"
+          s"arn:aws:ssm:${super.getRegion}:${super.getAccount}:parameter/$stage/$stack/$app"
         ).asJava)
         .build()
     ).asJava)

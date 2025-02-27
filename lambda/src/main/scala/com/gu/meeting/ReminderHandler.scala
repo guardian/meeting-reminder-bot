@@ -12,7 +12,6 @@ import com.gu.meeting.GCal.calendar
 import com.gu.{AppIdentity, AwsIdentity, DevIdentity}
 import com.typesafe.config.Config
 import software.amazon.awssdk.auth.credentials.{AwsCredentialsProviderChain, EnvironmentVariableCredentialsProvider, ProfileCredentialsProvider}
-import software.amazon.awssdk.regions.Region
 
 import java.io.ByteArrayInputStream
 import java.net.http.HttpClient
@@ -33,7 +32,7 @@ object LocalTest {
 
 object Config {
 
-  private val region = Region.EU_WEST_1
+  private val region = "eu-west-1"
 
   private val ProfileName = "developerPlayground"
 
@@ -55,7 +54,7 @@ object Config {
         AppIdentity.whoAmI(defaultAppName = "meeting-reminder-bot", credentialsProvider).get // throw if failed
     val config = ConfigurationLoader.load(identity, credentialsProvider) {
       case identity: AwsIdentity => SSMConfigurationLocation.default(identity)
-      case DevIdentity(myApp) => SSMConfigurationLocation(s"/CODE/playground/$myApp", region.id())
+      case DevIdentity(myApp) => SSMConfigurationLocation(s"/CODE/playground/$myApp", region)
     }
     config
   }
@@ -86,9 +85,6 @@ object GCal {
 }
 
 object ReminderHandler {
-
-  import Config.config
-  import GCal.calendar
   private val client = HttpClient.newHttpClient
 
   // TODO have to watch if the lambda starts around the minute, it might not run exactly once in each minute
@@ -99,8 +95,8 @@ object ReminderHandler {
 class ReminderHandler {
 
   import Config.*
-  import ReminderHandler.client
   import GCal.calendar
+  import ReminderHandler.client
 
   // main runtime entry point
   def handleRequest(): Unit = {

@@ -5,13 +5,13 @@ import com.google.api.services.calendar.Calendar
 import com.google.api.services.calendar.model.Event
 import com.gu.meeting.Config.config
 import com.gu.meeting.GCal.calendar
-import io.circe.Encoder
-import io.circe.syntax.*
 
 import java.net.URI
 import java.net.http.{HttpClient, HttpRequest, HttpResponse}
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
+import io.circe.Encoder
+import io.circe.syntax.*
 import scala.jdk.CollectionConverters.*
 import scala.util.Try
 
