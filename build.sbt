@@ -28,6 +28,7 @@ lazy val lambda = (project in file("lambda"))
       "io.circe" %% "circe-generic",
       "io.circe" %% "circe-parser"
     ).map(_ % circeVersion),
+    assembly / assemblyJarName := "meeting-reminder-bot.jar",
     assembly / assemblyMergeStrategy := {
       case PathList("META-INF", "maven", "org.webjars", "swagger-ui", "pom.properties") =>
         MergeStrategy.singleOrError
