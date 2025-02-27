@@ -33,10 +33,11 @@ class InfraStack(scope: Construct, id: String, stage: String, props: StackProps)
     case other => throw new RuntimeException("couldn't find handler method: " + other)
   }
   val fn = Function.Builder.create(this, app)
+    .functionName(app + "-" + stage)
     .runtime(Runtime.JAVA_21)
     .handler(lambdaClass.getName + "::" + method)
     .code(Code.fromBucketV2(bucket, List(stage, app, app + ".jar").mkString("/"), options))
-    .timeout(Duration.minutes(5))
+    .timeout(Duration.minutes(1))
     .architecture(Architecture.ARM_64)
     .logGroup(myLogGroup)
     .environment(Map(
