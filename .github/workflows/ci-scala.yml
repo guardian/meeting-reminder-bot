@@ -23,6 +23,14 @@ jobs:
           role-to-assume: ${{ secrets.GU_RIFF_RAFF_ROLE_ARN }}
           aws-region: eu-west-1
 
+      - name: install npm
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: install CDK command line
+        run: npm install -g aws-cdk
+
       - name: Setup Java, Scala and SBT
         uses: guardian/setup-scala@v1
 
