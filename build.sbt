@@ -4,6 +4,9 @@ ThisBuild / scalaVersion := "3.6.3"
 
 val circeVersion = "0.14.10"
 
+lazy val root = (project in file("."))
+  .aggregate(cdk, lambda)
+
 lazy val cdk = (project in file("cdk"))
   .dependsOn(lambda)
   .settings(

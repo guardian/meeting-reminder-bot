@@ -27,7 +27,7 @@ jobs:
         uses: guardian/setup-scala@v1
 
       - name: Run tests and build JAR
-        run: sbt test assembly
+        run: sbt test lambda/assembly
 
       - name: Create CFN from CDK (TODO CDK tests)
         run: cdk synth --app "sbt 'cdk/runMain com.gu.meeting.main'"
