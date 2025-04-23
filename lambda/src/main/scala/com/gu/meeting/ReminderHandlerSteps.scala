@@ -2,9 +2,10 @@ package com.gu.meeting
 
 import com.google.api.client.util.DateTime as GDateTime
 import com.google.api.services.calendar.Calendar
-import com.google.api.services.calendar.model.Event
+import com.google.api.services.calendar.model.{Event, Events}
 import com.gu.meeting.Config.config
 import com.gu.meeting.GCal.calendar
+import com.typesafe.scalalogging.StrictLogging
 
 import java.net.URI
 import java.net.http.{HttpClient, HttpRequest, HttpResponse}
@@ -12,13 +13,16 @@ import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import io.circe.Encoder
 import io.circe.syntax.*
+
 import scala.jdk.CollectionConverters.*
 import scala.util.Try
 
-object ReminderHandlerSteps {
+object ReminderHandlerSteps extends StrictLogging {
   def runSteps(googleServiceEmail: String, calendar: Calendar, now: OffsetDateTime, client: HttpClient): Unit = {
 
-    val events =
+    logger.info(s"Getting events from calendar $googleServiceEmail")
+
+    val events: Events = {
       calendar.events.list(googleServiceEmail)
         .setMaxResults(10)
         .setTimeMin(new GDateTime(now.toEpochSecond * 1000))
@@ -26,13 +30,18 @@ object ReminderHandlerSteps {
         .setSingleEvents(true)
         .execute
 
+    }
+
     val minuteOfInterest = now.withSecond(0).withNano(0)
 
+    val eventsList: List[Event] = events.getItems.asScala.toList
+    logger.info("got events " + eventsList.map(_.getSummary))
     val chatMessages =
       for {
-        event <- events.getItems.asScala.toList
+        event <- eventsList
         meeting <- MeetingData.fromApiEvent(event, now)
         if minuteOfInterest == meeting.start
+        _ = logger.info("Sending message for meeting " + meeting)
         chatMessage = {
           import meeting.*
           val link = meetLink match {
@@ -55,7 +64,7 @@ object ReminderHandlerSteps {
         .build
 
       val response = client.send(request, HttpResponse.BodyHandlers.ofString)
-      println(response.body)
+      logger.info("response from chathook:\n  " + response.body)
     }
 
   }

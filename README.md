@@ -17,5 +17,5 @@ TODO this can be made into an sbt command e.g. `sbt deployToCode` or a shell scr
 
 sbt lambda/assembly
 cdk synth --app "sbt 'cdk/runMain com.gu.meeting.main'"
-aws s3 cp lambda/target/scala-3.6.3/lambda-assembly-0.1.0-SNAPSHOT.jar s3://developer-playground-dist/CODE/meeting-reminder-bot/meeting-reminder-bot.jar --profile developerPlayground
+aws s3 cp lambda/target/scala-3.6.4/meeting-reminder-bot.jar s3://developer-playground-dist/CODE/meeting-reminder-bot/meeting-reminder-bot.jar --profile developerPlayground
 TODO some command here to update the CDK and refresh the lambda code...
