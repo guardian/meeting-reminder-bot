@@ -35,6 +35,7 @@ class InfraStack(scope: Construct, id: String, stage: String, props: StackProps)
   val fn = Function.Builder.create(this, app)
     .functionName(app + "-" + stage)
     .runtime(Runtime.JAVA_21)
+    .memorySize(1024) // MB
     .handler(lambdaClass.getName + "::" + method)
     .code(Code.fromBucketV2(bucket, List(stage, app, app + ".jar").mkString("/"), options))
     .timeout(Duration.minutes(1))
