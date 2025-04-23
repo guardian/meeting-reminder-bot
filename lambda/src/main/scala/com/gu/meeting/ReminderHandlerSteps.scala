@@ -3,17 +3,15 @@ package com.gu.meeting
 import com.google.api.client.util.DateTime as GDateTime
 import com.google.api.services.calendar.Calendar
 import com.google.api.services.calendar.model.{Event, Events}
-import com.gu.meeting.Config.config
-import com.gu.meeting.GCal.calendar
+import com.gu.meeting.MeetingData.eventsToMessages
 import com.typesafe.scalalogging.StrictLogging
+import io.circe.Encoder
+import io.circe.syntax.*
 
 import java.net.URI
 import java.net.http.{HttpClient, HttpRequest, HttpResponse}
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
-import io.circe.Encoder
-import io.circe.syntax.*
-
 import scala.jdk.CollectionConverters.*
 import scala.util.Try
 
@@ -36,24 +34,7 @@ object ReminderHandlerSteps extends StrictLogging {
 
     val eventsList: List[Event] = events.getItems.asScala.toList
     logger.info("got events " + eventsList.map(_.getSummary))
-    val chatMessages =
-      for {
-        event <- eventsList
-        meeting <- MeetingData.fromApiEvent(event, now)
-        if minuteOfInterest == meeting.start
-        _ = logger.info("Sending message for meeting " + meeting)
-        chatMessage = {
-          import meeting.*
-          val link = meetLink match {
-            case Some(value) => s"<$value|$title>"
-            case None => title
-          }
-          val suffix = s" is starting at " + start.format(DateTimeFormatter.ofPattern("hh:mm a"))
-          val message = link + suffix
-          val formattedText = title + suffix
-          ChatMessage(message, formattedText)
-        }
-      } yield meeting.webHookUrl -> chatMessage
+    val chatMessages: List[(String, ChatMessage)] = eventsToMessages(minuteOfInterest, eventsList)
 
     for {
       (webHookUrl, chatMessage) <- chatMessages
@@ -68,6 +49,7 @@ object ReminderHandlerSteps extends StrictLogging {
     }
 
   }
+
 }
 
 case class ChatMessage(
@@ -82,13 +64,35 @@ case class MeetingData(
   title: String,
 )
 
-object MeetingData {
-  def fromApiEvent(event: Event, lambdaStartTime: OffsetDateTime): Option[MeetingData] = {
+object MeetingData extends StrictLogging {
+
+  def eventsToMessages(minuteOfInterest: OffsetDateTime, eventsList: List[Event]): List[(String, ChatMessage)] = {
+    val chatMessages =
+      for {
+        event <- eventsList
+        meeting <- MeetingData.fromApiEvent(event)
+        if minuteOfInterest == meeting.start
+        _ = logger.info("Sending message for meeting " + meeting)
+        chatMessage = {
+          val link = meeting.meetLink match {
+            case Some(value) => s"<$value|${meeting.title}>"
+            case None => meeting.title
+          }
+          val suffix = s" is starting at " + meeting.start.format(DateTimeFormatter.ofPattern("hh:mm a"))
+          val message = link + suffix
+          val formattedText = meeting.title + suffix
+          ChatMessage(message, formattedText)
+        }
+      } yield meeting.webHookUrl -> chatMessage
+    chatMessages
+  }
+
+  def fromApiEvent(event: Event): Option[MeetingData] = {
     val start = Option(event.getStart.getDateTime).getOrElse(event.getStart.getDate)
     val offsetDateTime = Try(OffsetDateTime.parse(start.toStringRfc3339))
-    println(s"${event.getSummary} ($start / $offsetDateTime)")
+    logger.info(s"summary: ${event.getSummary} ($start / $offsetDateTime)")
     val maybeDescription = Option(event.getDescription)
-    println(maybeDescription)
+    logger.info("description: " + maybeDescription)
     val trustedChatBaseUrl = "https://chat.googleapis.com/" // avoid regex chars.  Base url is trusted as we send the API key there.
     val webHookUrl = for {
       d <- maybeDescription
@@ -97,12 +101,14 @@ object MeetingData {
         case _ => None
       }
     } yield chatUrl.replaceAll("&amp;", "&")
-    println("chatUrl: " + webHookUrl)
+    logger.info("chatUrl: " + webHookUrl)
     val meetLink = Option(event.getHangoutLink)
-    println("meet: " + meetLink)
+    logger.info("meet: " + meetLink)
     val title = Option(event.getSummary).getOrElse("unnamed meeting")
-    webHookUrl.map(u => {
-      MeetingData(u, offsetDateTime.getOrElse(lambdaStartTime), meetLink, title)
-    })
+    for {
+      u <- webHookUrl
+      time <- offsetDateTime.toOption
+    } yield
+      MeetingData(u, time, meetLink, title)
   }
 }

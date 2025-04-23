@@ -10,6 +10,7 @@ lazy val scalafmtSettings = Seq(
 )
 
 val circeVersion = "0.14.10"
+val scalatest = "org.scalatest" %% "scalatest" % "3.2.19" % "test"
 
 lazy val root = (project in file("."))
   .settings(name := "meeting-reminder-bot")
@@ -20,6 +21,7 @@ lazy val cdk = (project in file("cdk"))
   .settings(
     libraryDependencies ++= Seq(
       "software.amazon.awscdk" % "aws-cdk-lib" % "2.191.0",
+      scalatest,
     )
   )
   .settings(scalafmtSettings)
@@ -35,6 +37,7 @@ lazy val lambda = (project in file("lambda"))
       "org.jlib" % "jlib-awslambda-logback" % "1.0.0",
       "ch.qos.logback" % "logback-classic" % "1.5.18",
       "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5",
+      scalatest,
     ) ++ Seq(
       "io.circe" %% "circe-core",
       "io.circe" %% "circe-generic",

@@ -12,40 +12,51 @@ import software.constructs.Construct
 import java.lang.reflect.Method
 import scala.jdk.CollectionConverters.*
 
-class InfraStack(scope: Construct, id: String, stage: String, props: StackProps) extends Stack(scope, id, props) {
+object InfraStack {
 
   val bucketName = "developer-playground-dist"
   val app = "meeting-reminder-bot"
   val stack = "playground"
 
+  private val lambdaClass: Class[ReminderHandler] = classOf[ReminderHandler]
+
+  val handlerMethod: String = lambdaClass.getMethods.toList.filter(_.getName == "handleRequest") match {
+    case single :: Nil => single.getName
+    case other => throw new RuntimeException("couldn't find handler method: " + other)
+  }
+
+}
+
+class InfraStack(scope: Construct, id: String, stage: String, props: StackProps) extends Stack(scope, id, props) {
+
+  import InfraStack.*
+
   val bucket = Bucket.fromBucketName(this, app + "-bucket", bucketName)
   val options: BucketOptions = BucketOptions.builder().build()
 
-  val myLogGroup = LogGroup.Builder.create(this, "MyLogGroupWithLogGroupName")
+  val myLogGroup = LogGroup.Builder
+    .create(this, "MyLogGroupWithLogGroupName")
     .logGroupName("/aws/lambda/" + id)
     .retention(RetentionDays.TWO_WEEKS)
     .build
 
-  private val lambdaClass: Class[ReminderHandler] = classOf[ReminderHandler]
-
-  private val method: String = lambdaClass.getMethods.toList.filter(_.getName == "handleRequest") match {
-    case single :: Nil => single.getName
-    case other => throw new RuntimeException("couldn't find handler method: " + other)
-  }
-  val fn = Function.Builder.create(this, app)
+  val fn = Function.Builder
+    .create(this, app)
     .functionName(app + "-" + stage)
     .runtime(Runtime.JAVA_21)
     .memorySize(1024) // MB
-    .handler(lambdaClass.getName + "::" + method)
+    .handler(lambdaClass.getName + "::" + handlerMethod)
     .code(Code.fromBucketV2(bucket, List(stage, app, app + ".jar").mkString("/"), options))
     .timeout(Duration.minutes(1))
     .architecture(Architecture.ARM_64)
     .logGroup(myLogGroup)
-    .environment(Map(
+    .environment(
+      Map(
         "App" -> app,
         "Stack" -> stack,
         "Stage" -> stage,
-      ).asJava)
+      ).asJava,
+    )
     .build()
 
   fn.getNode.addDependency(myLogGroup)
@@ -55,17 +66,25 @@ class InfraStack(scope: Construct, id: String, stage: String, props: StackProps)
 
   val role = fn.getRole
 
-  private val lambdaPolicy: Policy = Policy.Builder.create(this, "LambdaPolicy")
-    .statements(List(
-      PolicyStatement.Builder.create()
-        .actions(List(
-          "ssm:GetParametersByPath"
-        ).asJava)
-        .resources(List(
-          s"arn:aws:ssm:${super.getRegion}:${super.getAccount}:parameter/$stage/$stack/$app"
-        ).asJava)
-        .build()
-    ).asJava)
+  private val lambdaPolicy: Policy = Policy.Builder
+    .create(this, "LambdaPolicy")
+    .statements(
+      List(
+        PolicyStatement.Builder
+          .create()
+          .actions(
+            List(
+              "ssm:GetParametersByPath",
+            ).asJava,
+          )
+          .resources(
+            List(
+              s"arn:aws:ssm:${super.getRegion}:${super.getAccount}:parameter/$stage/$stack/$app",
+            ).asJava,
+          )
+          .build(),
+      ).asJava,
+    )
     .build()
   role.attachInlinePolicy(lambdaPolicy)
 }
@@ -82,4 +101,3 @@ object Infra {
     println("result: " + result)
   }
 }
-
