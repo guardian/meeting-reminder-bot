@@ -7,8 +7,8 @@ import com.google.api.services.calendar.{Calendar, CalendarScopes}
 import com.google.auth.http.HttpCredentialsAdapter
 import com.google.auth.oauth2.ServiceAccountCredentials
 import com.gu.conf.{ConfigurationLoader, SSMConfigurationLocation}
-import com.gu.meeting.Config.config
-import com.gu.meeting.GCal.calendar
+import com.gu.meeting.clients.Config.config
+import com.gu.meeting.clients.GCal.calendar
 import com.gu.{AppIdentity, AwsIdentity, DevIdentity}
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging
@@ -31,62 +31,6 @@ object LocalTest {
 
 }
 
-object Config extends StrictLogging {
-
-  private val region = "eu-west-1"
-
-  private val ProfileName = "developerPlayground"
-
-  private lazy val credentialsProvider =
-    AwsCredentialsProviderChain
-      .builder()
-      .credentialsProviders(
-        ProfileCredentialsProvider.create(ProfileName),
-        EnvironmentVariableCredentialsProvider.create(),
-      )
-      .build()
-
-  lazy val config: Config = {
-    logger.info("loading config")
-    val isLocal = !sys.env.contains("AWS_SECRET_ACCESS_KEY") // lambda has this set
-    val identity =
-      if (isLocal)
-        DevIdentity("meeting-reminder-bot")
-      else
-        AppIdentity.whoAmI(defaultAppName = "meeting-reminder-bot", credentialsProvider).get // throw if failed
-    val config = ConfigurationLoader.load(identity, credentialsProvider) {
-      case identity: AwsIdentity => SSMConfigurationLocation.default(identity)
-      case DevIdentity(myApp) => SSMConfigurationLocation(s"/CODE/playground/$myApp", region)
-    }
-    logger.info("loaded config")
-    config
-  }
-
-}
-
-object GCal {
-
-  private val gsonFactory = GsonFactory.getDefaultInstance
-
-  private val httpTransport = GoogleNetHttpTransport.newTrustedTransport
-
-  private val scopes = List(CalendarScopes.CALENDAR_READONLY)
-
-
-  private lazy val serviceAccountCredential: HttpRequestInitializer = {
-
-    val key = "google-api-credential"
-    val source = new ByteArrayInputStream(config.getString(key).getBytes("UTF-8"))
-    val secret = ServiceAccountCredentials.fromStream(source).createScoped(scopes.asJava)
-    source.close()
-    //returns an authorized Credential object.
-    new HttpCredentialsAdapter(secret)
-  }
-
-  val calendar: Calendar = new Calendar.Builder(httpTransport, gsonFactory, serviceAccountCredential).setApplicationName("Meeting chat bot").build()
-
-}
-
 object ReminderHandler {
   // reuse static http client
   private val client = HttpClient.newHttpClient
@@ -97,8 +41,8 @@ object ReminderHandler {
 
 class ReminderHandler extends StrictLogging {
 
-  import Config.*
-  import GCal.calendar
+  import com.gu.meeting.clients.Config.*
+  import com.gu.meeting.clients.GCal.calendar
   import ReminderHandler.client
   import ReminderHandler.lambdaColdStartTime
 
