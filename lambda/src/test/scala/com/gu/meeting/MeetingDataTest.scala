@@ -12,14 +12,20 @@ class MeetingDataTest extends AnyFlatSpec with Matchers {
 
   "eventsToMessages" should "send a message where the meeting HAS NO meet link" in {
     val testData = List(thisMinuteNoMeet)
-    val expected = "https://chat.googleapis.com/asdfghjk" -> ChatMessage("My Test meeting is starting at 12:00 pm", "My Test meeting is starting at 12:00 pm")
+    val expected = "https://chat.googleapis.com/asdfghjk" -> ChatMessage(
+      "My Test meeting is starting at 12:00 pm",
+      "My Test meeting is starting at 12:00 pm",
+    )
     val actual = MeetingData.eventsToMessages(thisMinute, testData)
     actual should be(List(expected))
   }
 
   it should "send a message where the meeting HAS A meet link" in {
     val testData = List(thisMinuteWithMeet)
-    val expected = "https://chat.googleapis.com/asdfghjk" -> ChatMessage("<https://meet.google.com/asd-qwer-zxc|My Test meeting> is starting at 12:00 pm", "My Test meeting is starting at 12:00 pm")
+    val expected = "https://chat.googleapis.com/asdfghjk" -> ChatMessage(
+      "<https://meet.google.com/asd-qwer-zxc|My Test meeting> is starting at 12:00 pm",
+      "My Test meeting is starting at 12:00 pm",
+    )
     val actual = MeetingData.eventsToMessages(thisMinute, testData)
     actual should be(List(expected))
   }
@@ -39,7 +45,7 @@ object TestData {
   val thisMinuteNoMeet = new Event()
     .setStart(
       new EventDateTime()
-        .setDateTime(new DateTime(thisMinute.toEpochSecond * 1000, 0))
+        .setDateTime(new DateTime(thisMinute.toEpochSecond * 1000, 0)),
     )
     .setDescription("qwerty https://chat.googleapis.com/asdfghjk zxcvbn")
     .setSummary("My Test meeting")

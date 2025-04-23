@@ -12,6 +12,7 @@ import java.net.URI
 import java.net.http.{HttpClient, HttpRequest, HttpResponse}
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 import scala.jdk.CollectionConverters.*
 import scala.util.Try
 
@@ -21,7 +22,8 @@ object ReminderHandlerSteps extends StrictLogging {
     logger.info(s"Getting events from calendar $googleServiceEmail")
 
     val events: Events = {
-      calendar.events.list(googleServiceEmail)
+      calendar.events
+        .list(googleServiceEmail)
         .setMaxResults(10)
         .setTimeMin(new GDateTime(now.toEpochSecond * 1000))
         .setOrderBy("startTime")
@@ -39,7 +41,8 @@ object ReminderHandlerSteps extends StrictLogging {
     for {
       (webHookUrl, chatMessage) <- chatMessages
     } {
-      val request = HttpRequest.newBuilder(URI.create(webHookUrl))
+      val request = HttpRequest
+        .newBuilder(URI.create(webHookUrl))
         .header("accept", "application/json; charset=UTF-8")
         .POST(HttpRequest.BodyPublishers.ofString(chatMessage.asJson.spaces4))
         .build
@@ -53,15 +56,15 @@ object ReminderHandlerSteps extends StrictLogging {
 }
 
 case class ChatMessage(
-  text: String,
-  formattedText: String
+    text: String,
+    formattedText: String,
 ) derives Encoder
 
 case class MeetingData(
-  webHookUrl: String,
-  start: OffsetDateTime,
-  meetLink: Option[String],
-  title: String,
+    webHookUrl: String,
+    start: OffsetDateTime,
+    meetLink: Option[String],
+    title: String,
 )
 
 object MeetingData extends StrictLogging {
@@ -78,7 +81,7 @@ object MeetingData extends StrictLogging {
             case Some(value) => s"<$value|${meeting.title}>"
             case None => meeting.title
           }
-          val suffix = s" is starting at " + meeting.start.format(DateTimeFormatter.ofPattern("hh:mm a"))
+          val suffix = s" is starting at " + meeting.start.format(DateTimeFormatter.ofPattern("hh:mm a", Locale.UK))
           val message = link + suffix
           val formattedText = meeting.title + suffix
           ChatMessage(message, formattedText)
@@ -93,7 +96,8 @@ object MeetingData extends StrictLogging {
     logger.info(s"summary: ${event.getSummary} ($start / $offsetDateTime)")
     val maybeDescription = Option(event.getDescription)
     logger.info("description: " + maybeDescription)
-    val trustedChatBaseUrl = "https://chat.googleapis.com/" // avoid regex chars.  Base url is trusted as we send the API key there.
+    val trustedChatBaseUrl =
+      "https://chat.googleapis.com/" // avoid regex chars.  Base url is trusted as we send the API key there.
     val webHookUrl = for {
       d <- maybeDescription
       chatUrl <- d.split(trustedChatBaseUrl).toList match {
@@ -108,7 +112,6 @@ object MeetingData extends StrictLogging {
     for {
       u <- webHookUrl
       time <- offsetDateTime.toOption
-    } yield
-      MeetingData(u, time, meetLink, title)
+    } yield MeetingData(u, time, meetLink, title)
   }
 }
