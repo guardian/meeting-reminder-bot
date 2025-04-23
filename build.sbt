@@ -1,17 +1,18 @@
 ThisBuild / version := "0.1.0-SNAPSHOT"
 
-ThisBuild / scalaVersion := "3.6.3"
+ThisBuild / scalaVersion := "3.6.4"
 
 val circeVersion = "0.14.10"
 
 lazy val root = (project in file("."))
+  .settings(name := "meeting-reminder-bot")
   .aggregate(cdk, lambda)
 
 lazy val cdk = (project in file("cdk"))
   .dependsOn(lambda)
   .settings(
     libraryDependencies ++= Seq(
-      "software.amazon.awscdk" % "aws-cdk-lib" % "2.180.0",
+      "software.amazon.awscdk" % "aws-cdk-lib" % "2.191.0",
     )
   )
 
@@ -20,9 +21,12 @@ lazy val lambda = (project in file("lambda"))
     name := "lambda",
     libraryDependencies ++= Seq(
       "com.google.api-client" % "google-api-client" % "2.7.2",
-      "com.google.oauth-client" % "google-oauth-client-jetty" % "1.38.0",
-      "com.google.apis" % "google-api-services-calendar" % "v3-rev20250115-2.0.0",
-      "com.gu" %% "simple-configuration-ssm" % "5.0.0",
+      "com.google.oauth-client" % "google-oauth-client-jetty" % "1.39.0",
+      "com.google.apis" % "google-api-services-calendar" % "v3-rev20250404-2.0.0",
+      "com.gu" %% "simple-configuration-ssm" % "5.1.0",
+      "org.jlib" % "jlib-awslambda-logback" % "1.0.0",
+      "ch.qos.logback" % "logback-classic" % "1.5.18",
+      "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5",
     ) ++ Seq(
       "io.circe" %% "circe-core",
       "io.circe" %% "circe-generic",

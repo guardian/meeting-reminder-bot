@@ -53,4 +53,4 @@ jobs:
               - ./cdk.out/meeting-reminder-bot-CODE.template.json
               - ./cdk.out/meeting-reminder-bot-PROD.template.json
             lambda:
-              - ./lambda/target/scala-3.6.3/meeting-reminder-bot.jar
+              - ./lambda/target/scala-3.6.4/meeting-reminder-bot.jar

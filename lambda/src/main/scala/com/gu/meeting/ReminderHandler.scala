@@ -11,6 +11,7 @@ import com.gu.meeting.Config.config
 import com.gu.meeting.GCal.calendar
 import com.gu.{AppIdentity, AwsIdentity, DevIdentity}
 import com.typesafe.config.Config
+import com.typesafe.scalalogging.StrictLogging
 import software.amazon.awssdk.auth.credentials.{AwsCredentialsProviderChain, EnvironmentVariableCredentialsProvider, ProfileCredentialsProvider}
 
 import java.io.ByteArrayInputStream
@@ -30,13 +31,13 @@ object LocalTest {
 
 }
 
-object Config {
+object Config extends StrictLogging {
 
   private val region = "eu-west-1"
 
   private val ProfileName = "developerPlayground"
 
-  private val credentialsProvider =
+  private lazy val credentialsProvider =
     AwsCredentialsProviderChain
       .builder()
       .credentialsProviders(
@@ -45,7 +46,8 @@ object Config {
       )
       .build()
 
-  val config: Config = {
+  lazy val config: Config = {
+    logger.info("loading config")
     val isLocal = !sys.env.contains("AWS_SECRET_ACCESS_KEY") // lambda has this set
     val identity =
       if (isLocal)
@@ -56,6 +58,7 @@ object Config {
       case identity: AwsIdentity => SSMConfigurationLocation.default(identity)
       case DevIdentity(myApp) => SSMConfigurationLocation(s"/CODE/playground/$myApp", region)
     }
+    logger.info("loaded config")
     config
   }
 
@@ -85,23 +88,25 @@ object GCal {
 }
 
 object ReminderHandler {
+  // reuse static http client
   private val client = HttpClient.newHttpClient
 
-  // TODO have to watch if the lambda starts around the minute, it might not run exactly once in each minute
-  //  val lambdaColdStartTime = OffsetDateTime.now() //parse("2025-02-13T12:30:12.123Z")
+  val lambdaColdStartTime = OffsetDateTime.now() //parse("2025-02-13T12:30:12.123Z")
 
 }
 
-class ReminderHandler {
+class ReminderHandler extends StrictLogging {
 
   import Config.*
   import GCal.calendar
   import ReminderHandler.client
+  import ReminderHandler.lambdaColdStartTime
 
   // main runtime entry point
   def handleRequest(): Unit = {
     // have to watch if the lambda starts around the minute, it might not run exactly once in each minute
     val lambdaWarmStartTime = OffsetDateTime.now() //parse("2025-02-13T12:30:12.123Z")
+    logger.info(s"starting lambda at $lambdaWarmStartTime, cold start was at $lambdaColdStartTime")
     val googleServiceEmail = config.getString("google-service-email")
     ReminderHandlerSteps.runSteps(googleServiceEmail, calendar, lambdaWarmStartTime, client)
   }
