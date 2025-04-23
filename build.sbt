@@ -2,6 +2,13 @@ ThisBuild / version := "0.1.0-SNAPSHOT"
 
 ThisBuild / scalaVersion := "3.6.4"
 
+lazy val scalafmtSettings = Seq(
+  scalafmtFilter.withRank(KeyRanks.Invisible) := "diff-dirty",
+  (Test / test) := ((Test / test) dependsOn (Test / scalafmtCheckAll)).value,
+  (Test / testOnly) := ((Test / testOnly) dependsOn (Test / scalafmtCheckAll)).evaluated,
+  (Test / testQuick) := ((Test / testQuick) dependsOn (Test / scalafmtCheckAll)).evaluated,
+)
+
 val circeVersion = "0.14.10"
 
 lazy val root = (project in file("."))
@@ -15,6 +22,7 @@ lazy val cdk = (project in file("cdk"))
       "software.amazon.awscdk" % "aws-cdk-lib" % "2.191.0",
     )
   )
+  .settings(scalafmtSettings)
 
 lazy val lambda = (project in file("lambda"))
   .settings(
@@ -55,3 +63,4 @@ lazy val lambda = (project in file("lambda"))
         oldStrategy(x)
     }
   )
+  .settings(scalafmtSettings)
