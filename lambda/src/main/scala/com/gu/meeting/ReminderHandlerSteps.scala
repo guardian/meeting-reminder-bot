@@ -28,6 +28,7 @@ object ReminderHandlerSteps extends StrictLogging {
         .setTimeMin(new GDateTime(now.toEpochSecond * 1000))
         .setOrderBy("startTime")
         .setSingleEvents(true)
+        .setTimeZone("Europe/London")
         .execute
 
     }
