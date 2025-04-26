@@ -75,7 +75,8 @@ object MeetingData extends StrictLogging {
       for {
         event <- eventsList
         meeting <- MeetingData.fromApiEvent(event)
-        if minuteOfInterest == meeting.start
+        _ = logger.info(s"comparing minute of interest ${minuteOfInterest.toInstant} with ${meeting.start.toInstant}")
+        if minuteOfInterest.toInstant == meeting.start.toInstant
         _ = logger.info("Sending message for meeting " + meeting)
         chatMessage = {
           val link = meeting.meetLink match {

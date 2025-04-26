@@ -24,7 +24,7 @@ object LocalTest {
   // this main method is useful to try it locally
   @main
   def runTest() = {
-    val lambdaWarmStartTime = OffsetDateTime.parse("2025-02-13T12:30:12.123Z")
+    val lambdaWarmStartTime = OffsetDateTime.parse("2025-04-25T09:45:12.123+01:00")
     val googleServiceEmail = config.getString("google-service-email")
     ReminderHandlerSteps.runSteps(googleServiceEmail, calendar, lambdaWarmStartTime, HttpClient.newHttpClient)
   }
