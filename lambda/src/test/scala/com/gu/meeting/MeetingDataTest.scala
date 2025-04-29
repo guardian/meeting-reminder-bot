@@ -3,7 +3,7 @@ package com.gu.meeting
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import java.time.{OffsetDateTime, ZoneOffset}
+import java.time.{Instant, LocalDateTime, ZoneId}
 
 class MeetingDataTest extends AnyFlatSpec with Matchers {
   import TestData.*
@@ -14,7 +14,7 @@ class MeetingDataTest extends AnyFlatSpec with Matchers {
       "My Test meeting is starting at 1:00 pm",
       "My Test meeting is starting at 1:00 pm",
     )
-    val actual = testData.maybeMessage(thisMinute)
+    val actual = testData.maybeMessage(thisInstant)
     actual should be(Some(expected))
   }
 
@@ -24,19 +24,19 @@ class MeetingDataTest extends AnyFlatSpec with Matchers {
       "<https://meet.google.com/asd-qwer-zxc|My Test meeting> is starting at 1:00 pm",
       "My Test meeting is starting at 1:00 pm",
     )
-    val actual = testData.maybeMessage(thisMinute)
+    val actual = testData.maybeMessage(thisInstant)
     actual should be(Some(expected))
   }
 
   it should "send no message where the meeting is in one minute" in {
     val testData = thisMinuteNoMeet
-    val actual = testData.maybeMessage(thisMinute.minusSeconds(60))
+    val actual = testData.maybeMessage(thisInstant.minusSeconds(60))
     actual should be(None)
   }
 
   it should "filter out non organisation meetings" in {
     val testData = thisMinuteNoMeet.copy(owner = Some("test@baddies.com"))
-    val actual = testData.maybeMessage(thisMinute)
+    val actual = testData.maybeMessage(thisInstant)
     actual should be(None)
   }
 
@@ -44,11 +44,12 @@ class MeetingDataTest extends AnyFlatSpec with Matchers {
 
 object TestData {
 
-  val thisMinute = OffsetDateTime.of(2025, 4, 23, 12, 0, 0, 0, ZoneOffset.UTC).toInstant
+  private val localDateTime: LocalDateTime = LocalDateTime.of(2025, 4, 23, 13, 0, 0, 0)
+  val thisInstant: Instant = localDateTime.toInstant(ZoneId.of("Europe/London").getRules.getOffset(localDateTime))
 
-  val thisMinuteNoMeet = MeetingData(
+  val thisMinuteNoMeet: MeetingData = MeetingData(
     Some("qwerty https://chat.googleapis.com/asdfghjk zxcvbn"),
-    thisMinute,
+    thisInstant,
     None,
     "My Test meeting",
     Some("hello@guardian.co.uk"),
