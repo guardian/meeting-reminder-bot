@@ -3,15 +3,15 @@ package com.gu.meeting
 import com.google.api.client.util.DateTime as GDateTime
 import com.google.api.services.calendar.Calendar
 import com.google.api.services.calendar.model.{Event, Events}
-import com.gu.meeting.MeetingData.eventsToMessages
-import com.typesafe.scalalogging.StrictLogging
+import com.gu.meeting.MeetingData.trustedChatBaseUrl
+import com.typesafe.scalalogging.{LazyLogging, StrictLogging}
 import io.circe.Encoder
 import io.circe.syntax.*
 
 import java.net.URI
 import java.net.http.{HttpClient, HttpRequest, HttpResponse}
-import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
+import java.time.{Instant, OffsetDateTime, ZoneId}
 import java.util.Locale
 import scala.jdk.CollectionConverters.*
 import scala.util.Try
@@ -33,14 +33,11 @@ object ReminderHandlerSteps extends StrictLogging {
 
     }
 
-    val minuteOfInterest = now.withSecond(0).withNano(0)
-
-    val eventsList: List[Event] = events.getItems.asScala.toList
-    logger.info("got events " + eventsList.map(_.getSummary))
-    val chatMessages: List[(String, ChatMessage)] = eventsToMessages(minuteOfInterest, eventsList)
+    val minuteOfInterest = now.withSecond(0).withNano(0).toInstant
 
     for {
-      (webHookUrl, chatMessage) <- chatMessages
+      meeting <- MeetingList.fromEvents(events)
+      (webHookUrl, chatMessage) <- meeting.maybeMessage(minuteOfInterest)
     } {
       val request = HttpRequest
         .newBuilder(URI.create(webHookUrl))
@@ -56,64 +53,79 @@ object ReminderHandlerSteps extends StrictLogging {
 
 }
 
+object MeetingList extends LazyLogging {
+  def fromEvents(events: Events): List[MeetingData] = {
+    for {
+      event <- events.getItems.asScala.toList
+      _ = logger.info("got event " + event.getSummary)
+      meeting <- MeetingData.fromApiEvent(event)
+    } yield meeting
+  }
+}
+
 case class ChatMessage(
     text: String,
     formattedText: String,
 ) derives Encoder
 
 case class MeetingData(
-    webHookUrl: String,
-    start: OffsetDateTime,
+    description: Option[String],
+    start: Instant,
     meetLink: Option[String],
     title: String,
-)
+    owner: Option[String],
+) extends LazyLogging {
+
+  val chatMessage: ChatMessage = {
+    val link = meetLink match {
+      case Some(value) => s"<$value|$title>"
+      case None => title
+    }
+    val suffix = s" is starting at " + OffsetDateTime
+      .ofInstant(start, ZoneId.of("Europe/London"))
+      .format(DateTimeFormatter.ofPattern("h:mm a", Locale.UK))
+    val message = link + suffix
+    val formattedText = title + suffix
+    ChatMessage(message, formattedText)
+  }
+
+  val maybeWebHookUrl: Option[String] = for {
+    d <- description
+    chatUrl <- d.split(trustedChatBaseUrl).toList match {
+      case _ :: link :: _ => Some(trustedChatBaseUrl + link.takeWhile(!List('"', '<', ' ', '\n').contains(_)))
+      case _ => None
+    }
+    webHookUrl = chatUrl.replaceAll("&amp;", "&")
+    _ = logger.info(">>  chatUrl: " + webHookUrl)
+  } yield webHookUrl
+
+  def maybeMessage(minuteOfInterest: Instant): Option[(String, ChatMessage)] =
+    for {
+      webHookUrl <- maybeWebHookUrl
+      if owner.exists(_.endsWith("@guardian.co.uk"))
+      _ = logger.info(s"comparing minute of interest $minuteOfInterest with $start")
+      if minuteOfInterest == start
+      _ = logger.info("Sending message for meeting " + this)
+    } yield webHookUrl -> chatMessage
+}
 
 object MeetingData extends StrictLogging {
 
-  def eventsToMessages(minuteOfInterest: OffsetDateTime, eventsList: List[Event]): List[(String, ChatMessage)] = {
-    val chatMessages =
-      for {
-        event <- eventsList
-        meeting <- MeetingData.fromApiEvent(event)
-        _ = logger.info(s"comparing minute of interest ${minuteOfInterest.toInstant} with ${meeting.start.toInstant}")
-        if minuteOfInterest.toInstant == meeting.start.toInstant
-        _ = logger.info("Sending message for meeting " + meeting)
-        chatMessage = {
-          val link = meeting.meetLink match {
-            case Some(value) => s"<$value|${meeting.title}>"
-            case None => meeting.title
-          }
-          val suffix = s" is starting at " + meeting.start.format(DateTimeFormatter.ofPattern("hh:mm a", Locale.UK))
-          val message = link + suffix
-          val formattedText = meeting.title + suffix
-          ChatMessage(message, formattedText)
-        }
-      } yield meeting.webHookUrl -> chatMessage
-    chatMessages
-  }
+  val trustedChatBaseUrl = "https://chat.googleapis.com/" // avoid regex chars.
 
   def fromApiEvent(event: Event): Option[MeetingData] = {
+    val owner = Option(event.getCreator.getEmail)
+    logger.info(">>  meeting owned by " + owner)
     val start = Option(event.getStart.getDateTime).getOrElse(event.getStart.getDate)
     val offsetDateTime = Try(OffsetDateTime.parse(start.toStringRfc3339))
-    logger.info(s"summary: ${event.getSummary} ($start / $offsetDateTime)")
+    logger.info(s">>  summary: ${event.getSummary} ($start / $offsetDateTime)")
     val maybeDescription = Option(event.getDescription)
-    logger.info("description: " + maybeDescription)
-    val trustedChatBaseUrl =
-      "https://chat.googleapis.com/" // avoid regex chars.  Base url is trusted as we send the API key there.
-    val webHookUrl = for {
-      d <- maybeDescription
-      chatUrl <- d.split(trustedChatBaseUrl).toList match {
-        case _ :: link :: _ => Some(trustedChatBaseUrl + link.takeWhile(!List('"', '<', ' ', '\n').contains(_)))
-        case _ => None
-      }
-    } yield chatUrl.replaceAll("&amp;", "&")
-    logger.info("chatUrl: " + webHookUrl)
+    logger.info(">>  description: " + maybeDescription)
     val meetLink = Option(event.getHangoutLink)
-    logger.info("meet: " + meetLink)
+    logger.info(">>  meet: " + meetLink)
     val title = Option(event.getSummary).getOrElse("unnamed meeting")
     for {
-      u <- webHookUrl
-      time <- offsetDateTime.toOption
-    } yield MeetingData(u, time, meetLink, title)
+      time <- offsetDateTime.toOption.map(_.toInstant)
+    } yield MeetingData(maybeDescription, time, meetLink, title, owner)
   }
 }
