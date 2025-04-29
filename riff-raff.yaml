@@ -14,7 +14,7 @@ deployments:
         CODE: meeting-reminder-bot-CODE.template.json
         PROD: meeting-reminder-bot-PROD.template.json
 
-  lambda:
+  meeting-reminder-bot:
     type: aws-lambda
     parameters:
       fileName: meeting-reminder-bot.jar
