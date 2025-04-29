@@ -52,5 +52,5 @@ jobs:
             cloudformation:
               - ./cdk.out/meeting-reminder-bot-CODE.template.json
               - ./cdk.out/meeting-reminder-bot-PROD.template.json
-            lambda:
+            meeting-reminder-bot:
               - ./lambda/target/scala-3.6.4/meeting-reminder-bot.jar
