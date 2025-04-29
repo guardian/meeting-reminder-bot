@@ -6,8 +6,8 @@ Follow these two steps:
 1. Add a suitable chat webhook to your chat channel (or use an existing one)
 <img width="582" alt="image" src="https://github.com/user-attachments/assets/1a956173-0f52-4fd6-9e8a-d794c34ee23d" />
 
-2. Paste the URL into your meeting description somewhere, and invite the special bot to your meeting.  Ask John for the service account address (it's private to avoid possible abuse)
-Note: When you add the bot or reschedule a meeting, you don't need to "send out invites" for it to work, but you may need to confirm that you trust the bot as it's not in the guardian.co.uk domain.
+2. Paste the URL into your meeting description somewhere, and invite the reminder calendar to your meeting.  Ask John for the calendar ID (it's private to avoid possible abuse)
+Note: When you add the bot or reschedule a meeting, you don't need to "send out invites" for it to work.
 <img width="482" alt="image" src="https://github.com/user-attachments/assets/35a5323a-20c8-46f2-bb4d-c4112f96b64b" />
 
 The bot will drop a message on your channel when the meeting starts, respecting any reschedules or cancellations.
@@ -20,12 +20,14 @@ The bot will drop a message on your channel when the meeting starts, respecting 
 ## Running locally
 
 You should be able to get dev playground aws credentials and then run the main method in the LocalTest class (or type `sbt lambda/run`)
+The lambda will use the SANDBOX calendar when running locally.
+
 Unit tests can be run using `sbt test` (or `sbt cdk/test` and `sbt lambda/test` as required)
 TODO There are no runnable integration tests yet.
 
 ## CODE env
 
-Currently there is only a CODE env and it is the one in use for sending messages.  In future we can add PROD on CD and make CODE (only) send messages to a test channel.
+When running in CODE it will use the SANDBOX calendar as above.  Otherwise it's exactly the same as the PROD one.
 
 ## deploying to code quickly
 
