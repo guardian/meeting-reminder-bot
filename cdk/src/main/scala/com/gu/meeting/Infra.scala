@@ -34,12 +34,6 @@ class InfraStack(scope: Construct, id: String, stage: String, props: StackProps)
   val bucket = Bucket.fromBucketName(this, app + "-bucket", bucketName)
   val options: BucketOptions = BucketOptions.builder().build()
 
-  val myLogGroup = LogGroup.Builder
-    .create(this, "MyLogGroupWithLogGroupName")
-    .logGroupName("/aws/lambda/" + id)
-    .retention(RetentionDays.TWO_WEEKS)
-    .build
-
   val fn = Function.Builder
     .create(this, app)
     .functionName(app + "-" + stage)
@@ -49,7 +43,6 @@ class InfraStack(scope: Construct, id: String, stage: String, props: StackProps)
     .code(Code.fromBucketV2(bucket, List(stack, stage, app, app + ".jar").mkString("/"), options))
     .timeout(Duration.minutes(1))
     .architecture(Architecture.ARM_64)
-    .logGroup(myLogGroup)
     .environment(
       Map(
         "App" -> app,
@@ -57,9 +50,8 @@ class InfraStack(scope: Construct, id: String, stage: String, props: StackProps)
         "Stage" -> stage,
       ).asJava,
     )
+    .logRetention(RetentionDays.TWO_WEEKS)
     .build()
-
-  fn.getNode.addDependency(myLogGroup)
 
   val rule = Rule.Builder.create(this, "Schedule Rule").schedule(Schedule.rate(Duration.minutes(1))).build
   rule.addTarget(new LambdaFunction(fn))
