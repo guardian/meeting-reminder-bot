@@ -46,7 +46,7 @@ class InfraStack(scope: Construct, id: String, stage: String, props: StackProps)
     .runtime(Runtime.JAVA_21)
     .memorySize(1024) // MB
     .handler(lambdaClass.getName + "::" + handlerMethod)
-    .code(Code.fromBucketV2(bucket, List(stage, app, app + ".jar").mkString("/"), options))
+    .code(Code.fromBucketV2(bucket, List(stack, stage, app, app + ".jar").mkString("/"), options))
     .timeout(Duration.minutes(1))
     .architecture(Architecture.ARM_64)
     .logGroup(myLogGroup)
