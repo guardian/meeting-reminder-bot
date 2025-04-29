@@ -37,7 +37,7 @@ jobs:
       - name: Run tests and build JAR
         run: sbt test lambda/assembly
 
-      - name: Create CFN from CDK (TODO CDK tests)
+      - name: Create CFN from CDK
         run: cdk synth --app "sbt test 'cdk/runMain com.gu.meeting.main'"
 
       - name: Upload to Riff-Raff
