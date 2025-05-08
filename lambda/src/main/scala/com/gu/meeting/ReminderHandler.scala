@@ -15,8 +15,8 @@ object LocalTest {
   // 3. update lambdaWarmStartTime to the time of your test meeting
   // 4. run this with `sbt lambda/run`
   @main
-  def runTest() = {
-    val lambdaWarmStartTime = OffsetDateTime.parse("2025-04-29T09:00:12.123+01:00")
+  def runTest(): Unit = {
+    val lambdaWarmStartTime = OffsetDateTime.parse("2025-05-07T09:00:12.123+01:00")
     val googleServiceEmail = config.getString("google-service-email")
     ReminderHandlerSteps.runSteps(googleServiceEmail, calendar, lambdaWarmStartTime, HttpClient.newHttpClient)
   }
@@ -27,7 +27,7 @@ object ReminderHandler {
   // reuse static http client
   private val client = HttpClient.newHttpClient
 
-  val lambdaColdStartTime = OffsetDateTime.now() // parse("2025-02-13T12:30:12.123Z")
+  val lambdaColdStartTime: OffsetDateTime = OffsetDateTime.now() // parse("2025-02-13T12:30:12.123Z")
 
 }
 
