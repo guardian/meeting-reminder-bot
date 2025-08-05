@@ -14,9 +14,9 @@ import scala.jdk.CollectionConverters.*
 
 object InfraStack {
 
-  val bucketName = "developer-playground-dist"
+  val bucketName = "membership-dist"
   val app = "meeting-reminder-bot"
-  val stack = "playground"
+  val stack = "support"
 
   private val lambdaClass: Class[ReminderHandler] = classOf[ReminderHandler]
 

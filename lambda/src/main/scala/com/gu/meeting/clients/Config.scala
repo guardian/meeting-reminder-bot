@@ -14,7 +14,7 @@ object Config extends StrictLogging {
 
   private val region = "eu-west-1"
 
-  private val ProfileName = "developerPlayground"
+  private val ProfileName = "membership"
 
   private lazy val credentialsProvider =
     AwsCredentialsProviderChain
@@ -35,7 +35,7 @@ object Config extends StrictLogging {
         AppIdentity.whoAmI(defaultAppName = "meeting-reminder-bot", credentialsProvider).get // throw if failed
     val config = ConfigurationLoader.load(identity, credentialsProvider) {
       case identity: AwsIdentity => SSMConfigurationLocation.default(identity)
-      case DevIdentity(myApp) => SSMConfigurationLocation(s"/CODE/playground/$myApp", region)
+      case DevIdentity(myApp) => SSMConfigurationLocation(s"/CODE/support/$myApp", region)
     }
     logger.info("loaded config")
     config

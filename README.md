@@ -19,7 +19,7 @@ The bot will drop a message on your channel when the meeting starts, respecting 
 
 ## Running locally
 
-You should be able to get dev playground aws credentials and then run the main method in the LocalTest class (or type `sbt lambda/run`)
+You should be able to get membership aws credentials and then run the main method in the LocalTest class (or type `sbt lambda/run`)
 The lambda will use the SANDBOX calendar when running locally.
 
 Unit tests can be run using `sbt test` (or `sbt cdk/test` and `sbt lambda/test` as required)
@@ -35,7 +35,7 @@ TODO make this nicer (this can be made into an sbt command e.g. `sbt deployToCod
 
 ### Lambda Code
 1. sbt lambda/assembly
-1. aws s3 cp lambda/target/scala-3.6.4/meeting-reminder-bot.jar s3://developer-playground-dist/CODE/meeting-reminder-bot/meeting-reminder-bot.jar --profile developerPlayground
+1. aws s3 cp lambda/target/scala-3.6.4/meeting-reminder-bot.jar s3://membership-dist/CODE/meeting-reminder-bot/meeting-reminder-bot.jar --profile developerPlayground
 1. Go to the lambda console and update the lambda code.
 
 ### Infra/CDK
