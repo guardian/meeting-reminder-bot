@@ -10,7 +10,7 @@ import java.time.OffsetDateTime
 object LocalTest {
 
   // this main method is useful to try it locally:
-  // 1. get dev playground read only credentials
+  // 1. get membership read only credentials
   // 2. add a test meeting to the sandbox calendar
   // 3. update lambdaWarmStartTime to the time of your test meeting
   // 4. run this with `sbt lambda/run`

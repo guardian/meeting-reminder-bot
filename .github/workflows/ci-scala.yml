@@ -45,7 +45,7 @@ jobs:
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           roleArn: ${{ secrets.GU_RIFF_RAFF_ROLE_ARN }}
-          projectName: playground::meeting-reminder-bot
+          projectName: support::meeting-reminder-bot
           configPath: ./riff-raff.yaml
           commentingEnabled: 'false'
           contentDirectories: |
