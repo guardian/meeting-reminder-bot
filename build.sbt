@@ -33,7 +33,7 @@ lazy val lambda = (project in file("lambda"))
       "com.google.api-client" % "google-api-client" % "2.7.2",
       "com.google.oauth-client" % "google-oauth-client-jetty" % "1.39.0",
       "com.google.apis" % "google-api-services-calendar" % "v3-rev20250404-2.0.0",
-      "com.gu" %% "simple-configuration-ssm" % "5.1.0",
+      "com.gu" %% "simple-configuration-ssm" % "15.0.0",
       "org.jlib" % "jlib-awslambda-logback" % "1.0.0",
       "ch.qos.logback" % "logback-classic" % "1.5.18",
       "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5",
